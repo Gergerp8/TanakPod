@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>TanakPod AI · Field Intelligence Console</title>
+<style>
+  *,*::before,*::after{ box-sizing:border-box; }
+  :root{
+    --bg1:#0b1020; --bg2:#0d1a2b;
+    --glass:rgba(255,255,255,0.08);
+    --border:rgba(255,255,255,0.15);
+    --text:#e7f2ff; --muted:#9fb3c8;
+    --accent:#66fbd1; --accent2:#7aa6ff; --warn:#ffd166;
+  }
+  body{
+    margin:0; color:var(--text);
+    background:
+      radial-gradient(1200px 800px at 10% -10%, #1b2a4a 0%, transparent 40%),
+      radial-gradient(1200px 800px at 110% 10%, #002a5a 0%, transparent 40%),
+      linear-gradient(180deg, var(--bg1), var(--bg2));
+    font-family: Inter, ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica, Arial;
+    min-height:100vh;
+  }
+  .veil{
+    position:fixed; inset:-20vmax; pointer-events:none; opacity:.32; filter:blur(60px);
+    background: conic-gradient(from 160deg, #1ef4d6, #7aa6ff, #b47cff, #1ef4d6);
+    animation: swirl 18s linear infinite; mix-blend-mode: screen;
+  }
+  @keyframes swirl { to { transform: rotate(360deg); } }
+
+  .wrap{ max-width:1080px; margin:0 auto; padding:32px 20px 80px; position:relative; }
+  header{ display:flex; align-items:center; gap:16px; margin-bottom:24px; }
+  .logo{
+    width:44px; height:44px; border-radius:12px;
+    background: linear-gradient(135deg,#66fbd1,#7aa6ff);
+    box-shadow: 0 0 30px rgba(102,251,209,.4);
+    display:grid; place-items:center; font-weight:800; color:#0b1020;
+  }
+  .title h1{ margin:0; font-size:clamp(22px,3vw,32px); letter-spacing:.2px; }
+  .title p{ margin:4px 0 0; color:var(--muted); font-size:14px; }
+
+  .hero{
+    border:1px solid var(--border);
+    background:linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03));
+    border-radius:18px; padding:24px; margin-bottom:24px; backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  }
+  .hero h2{ margin:0 0 8px; font-size:clamp(18px,2.4vw,22px); }
+  .tag{ display:inline-block; font-size:12px; padding:6px 10px; border-radius:999px; background:rgba(122,166,255,.15); color:#bcd3ff; border:1px solid rgba(122,166,255,.35); }
+  .info{
+    margin-top:12px; padding:12px; border:1px dashed rgba(255,255,255,0.25); border-radius:12px; color:var(--muted);
+    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+  }
+
+  .grid{ display:grid; gap:24px; grid-template-columns: 1.15fr 0.85fr; align-items:start; }
+  @media (max-width: 900px){ .grid{ grid-template-columns: 1fr; } }
+
+  .card{
+    border:1px solid var(--border); background:var(--glass);
+    border-radius:18px; padding:18px; backdrop-filter: blur(12px);
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  }
+  .card h3{ margin:4px 0 12px; font-size:16px; letter-spacing:.3px; }
+
+  /* Form */
+  form{
+    display:grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap:14px 16px;
+  }
+  .full{ grid-column: 1 / -1; }
+  .fld label{ display:block; margin:0 0 6px; color:var(--muted); font-size:12px; }
+  .fld input{
+    width:100%; height:44px; padding:10px 12px;
+    background: rgba(255,255,255,0.06);
+    border:1px solid var(--border); color:var(--text);
+    border-radius:12px; outline:none;
+    transition: border .2s, box-shadow .2s, background .2s;
+    font-size:14px;
+  }
+  .fld input:focus{
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(102,251,209,.14);
+    background: rgba(255,255,255,0.08);
+  }
+  .fld input::placeholder{
+    color: var(--muted); /* #9fb3c8 */
+    opacity: 1;
+  }
+
+  .actions{ display:flex; flex-wrap:wrap; gap:14px; justify-content:flex-start; margin-top:4px; }
+  .btn{
+    appearance:none; border:1px solid var(--border);
+    background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.04));
+    color:var(--text); padding:12px 16px; border-radius:12px; cursor:pointer; font-weight:600;
+    transition: transform .08s ease, box-shadow .2s, border .2s;
+  }
+  .btn:hover{ transform: translateY(-1px); box-shadow: 0 10px 20px rgba(0,0,0,.25); }
+  .btn.primary{ border-color: rgba(102,251,209,.6); box-shadow: 0 0 24px rgba(102,251,209,.25) inset; }
+  .btn.secondary{ border-color: rgba(122,166,255,.6); box-shadow: 0 0 24px rgba(122,166,255,.25) inset; }
+  .btn.primary:hover { box-shadow: 0 0 25px rgba(102,251,209,.4), 0 0 5px rgba(102,251,209,.6) inset; }
+  .btn.secondary:hover { box-shadow: 0 0 25px rgba(122,166,255,.4), 0 0 5px rgba(122,166,255,.6) inset; }
+
+  /* Weather preview */
+  .previewRow{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+  .kpi{ display:flex; align-items:center; gap:10px; }
+  .kpi .dot{ width:10px; height:10px; border-radius:50%; background:var(--accent); box-shadow:0 0 12px var(--accent); }
+  .kpi .val{ font-size:20px; font-weight:800; letter-spacing:.4px; }
+  .muted{ color:var(--muted); font-size:13px; }
+
+  .spark{ width:100%; height:60px; }
+  .legend{ display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-top:6px; }
+
+  /* Output */
+  pre{
+    margin:0; background: rgba(6,10,22,.8); border:1px solid rgba(255,255,255,0.08); border-radius:10px; padding:14px;
+    overflow-x:auto; color:#dff; box-shadow: inset 0 0 20px rgba(0,0,0,.35);
+    font-size:13px;
+  }
+
+  /* Toast */
+  .toast{
+    position:fixed; right:18px; bottom:18px;
+    padding:10px 14px; border-radius:12px;
+    background:rgba(30,41,59,.9); color:#e7f2ff;
+    border:1px solid rgba(255,255,255,.18);
+    box-shadow:0 10px 24px rgba(0,0,0,.35); z-index:9999;
+    font-size:14px;
+  }
+  .toast.ok{ border-color: rgba(102,251,209,.6); }
+  .toast.warn{ border-color: rgba(255,209,102,.6); }
+  .toast.err{ border-color: rgba(255,120,120,.6); }
+</style>
+</head>
+<body>
+<div class="veil"></div>
+<div class="wrap">
+
+  <header>
+    <div class="logo">TP</div>
+    <div class="title">
+      <h1>TanakPod AI · Field Intelligence Console</h1>
+      <p>Welcome, operator. Enter live readings, preview weather, and dispatch decisions across your estate.</p>
+    </div>
+  </header>
+
+  <section class="hero">
+    <span class="tag">Demo Mode · Manual Input</span>
+    <h2>Make fast, data-driven actions for every tree — from soil to sky.</h2>
+    <p class="info">
+      Enter values and preview the next 24h rainfall for your location. When you click <b>Send to AI</b>, the site calls your
+      Ingest Lambda, which also fetches rainfall server-side and forwards everything to your Decision Lambda
+      <span class="muted">(AI → Firebase → WhatsApp)</span>.
+    </p>
+  </section>
+
+  <div class="grid">
+    <!-- Left: Form -->
+    <section class="card">
+      <h3>Sensor Input</h3>
+      <form id="tanakpod-form">
+        <div class="fld">
+          <label for="tree_id">Tree ID</label>
+          <input id="tree_id" name="tree_id" placeholder="Plot7-Tree19" required />
+        </div>
+
+        <div class="fld">
+          <label for="soil_moisture">Soil moisture (0–1)</label>
+          <input id="soil_moisture" name="soil_moisture" type="number" step="0.01" placeholder="0.22" required />
+        </div>
+
+        <div class="fld">
+          <label for="electrical_conductivity">Electrical conductivity (dS/m)</label>
+          <input id="electrical_conductivity" name="electrical_conductivity" type="number" step="0.01" placeholder="1.40" required />
+        </div>
+
+        <div class="fld">
+          <label for="soil_nutrient_index">Soil nutrient index (0–1)</label>
+          <input id="soil_nutrient_index" name="soil_nutrient_index" type="number" step="0.01" placeholder="0.50" required />
+        </div>
+
+        <div class="fld full">
+          <label for="spectral_idx">Drone spectral index (NDVI-like, 0–1)</label>
+          <input id="spectral_idx" name="spectral_idx" type="number" step="0.01" placeholder="0.73" required />
+        </div>
+
+        <div class="fld">
+          <label for="lat">Latitude (optional)</label>
+          <input id="lat" name="lat" type="text" placeholder="5.9804" />
+        </div>
+
+        <div class="fld">
+          <label for="lon">Longitude (optional)</label>
+          <input id="lon" name="lon" type="text" placeholder="116.0735" />
+        </div>
+
+        <div class="actions full">
+          <button class="btn secondary" id="previewBtn" type="button">🔎 Preview 24h Rain</button>
+          <button class="btn primary" type="submit">🚀 Send to AI</button>
+        </div>
+      </form>
+
+      <p class="info" style="margin-top:14px;">
+        Tip: For a quick demo, try <b>soil_moisture = 0.12</b> (Irrigate), <b>soil_nutrient_index = 0.32</b> (Fertiliser),
+        or <b>spectral_idx = 0.75</b> with low rain (Harvest).
+      </p>
+    </section>
+
+    <!-- Right: Weather + Response -->
+    <section class="card">
+      <h3>Live Weather Preview</h3>
+      <div id="weatherPreview" style="display:none;">
+        <div class="previewRow">
+          <div class="kpi">
+            <div class="dot"></div>
+            <div>
+              <div class="muted">Rain next 24h</div>
+              <div class="val" id="rainTotal">–</div>
+            </div>
+          </div>
+          <div class="muted" id="coordsShown"></div>
+        </div>
+
+        <!-- Sparkline -->
+        <svg class="spark" viewBox="0 0 240 60" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(122,166,255,0.85)"/>
+              <stop offset="100%" stop-color="rgba(122,166,255,0.1)"/>
+            </linearGradient>
+          </defs>
+        <path id="sparkline" d="" fill="url(#grad)" stroke="rgba(122,166,255,0.9)" stroke-width="1.5"></path>
+        </svg>
+        <div class="legend"><span>Now</span><span>+24h</span></div>
+        <div class="muted" id="rainNote" style="margin-top:10px;"></div>
+      </div>
+
+      <div style="margin-top:16px;">
+        <h3 style="margin:0 0 8px;">Server Response</h3>
+        <pre id="output">—</pre>
+      </div>
+    </section>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden>—</div>
+
+<script>
+  // 🔹 Replace with your actual Ingest Lambda Function URL
+  const INGEST_URL = "https://irkk34opiwl5a3mepkpq5hgpgm0tvaml.lambda-url.ap-southeast-1.on.aws/";
+
+  /* ---------- Weather preview ---------- */
+  async function getRainPreview(lat, lon) {
+    const base = "https://api.open-meteo.com/v1/forecast";
+    const params = new URLSearchParams({
+      latitude: lat, longitude: lon,
+      hourly: "precipitation", forecast_days: "2", timezone: "auto"
+    });
+    const res = await fetch(`${base}?${params}`);
+    if (!res.ok) throw new Error("Open-Meteo request failed");
+    const data = await res.json();
+    const precip = (data?.hourly?.precipitation || []).slice(0, 24).map(Number);
+    const total = precip.reduce((a,b)=>a+(isNaN(b)?0:b), 0);
+    return { total: Number(total.toFixed(2)), hourly: precip };
+  }
+
+  function drawSparkline(values){
+    const w = 240, h = 60, pad = 6;
+    const max = Math.max(0.001, ...values);
+    const step = (w - pad*2) / (values.length - 1 || 1);
+    const pts = values.map((v,i)=>{
+      const x = pad + i*step;
+      const y = h - pad - (v/max) * (h - pad*2);
+      return [x,y];
+    });
+    if(pts.length === 0){ document.getElementById('sparkline').setAttribute('d',''); return; }
+    const d = [
+      `M ${pts[0][0]} ${pts[0][1]}`,
+      ...pts.slice(1).map(p=>`L ${p[0]} ${p[1]}`),
+      `L ${pts[pts.length-1][0]} ${h-pad}`,
+      `L ${pts[0][0]} ${h-pad}`,
+      'Z'
+    ].join(' ');
+    document.getElementById('sparkline').setAttribute('d', d);
+  }
+
+  function renderPreview(lat, lon, rain) {
+    const box = document.getElementById('weatherPreview');
+    box.style.display = 'block';
+    document.getElementById('rainTotal').textContent = `${rain.total} mm`;
+    document.getElementById('coordsShown').textContent = `Lat ${lat}, Lon ${lon}`;
+    document.getElementById('rainNote').textContent =
+      rain.total === 0
+        ? "No rain expected — harvesting conditions may be favorable if other metrics allow."
+        : "Rain expected — combine with spectral index & soil metrics for action.";
+    drawSparkline(rain.hourly);
+  }
+
+  async function previewWeather() {
+    const lat = document.getElementById('lat').value || "3.1390";
+    const lon = document.getElementById('lon').value || "101.6869";
+    const totalEl = document.getElementById('rainTotal');
+    document.getElementById('weatherPreview').style.display = 'block';
+    totalEl.textContent = "Loading…";
+    document.getElementById('coordsShown').textContent = `Lat ${lat}, Lon ${lon}`;
+    document.getElementById('rainNote').textContent = "Fetching Open-Meteo…";
+    drawSparkline([]);
+    try {
+      const rain = await getRainPreview(lat, lon);
+      renderPreview(lat, lon, rain);
+    } catch (e) {
+      totalEl.textContent = "Error";
+      document.getElementById('rainNote').textContent = "Failed to fetch Open-Meteo data.";
+    }
+  }
+
+  document.getElementById('previewBtn').addEventListener('click', previewWeather);
+  document.getElementById('lat').addEventListener('change', previewWeather);
+  document.getElementById('lon').addEventListener('change', previewWeather);
+
+  /* ---------- Toast + submit ---------- */
+  function showToast(msg, cls="ok", ms=3500){
+    const t = document.getElementById("toast");
+    t.textContent = msg; t.className = "toast " + cls; t.hidden = false;
+    clearTimeout(window.__toastTimer); window.__toastTimer = setTimeout(()=> t.hidden = true, ms);
+  }
+
+  document.getElementById('tanakpod-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = new FormData(e.target);
+    const payload = Object.fromEntries(form.entries());
+
+    ["soil_moisture","electrical_conductivity","soil_nutrient_index","spectral_idx"].forEach(k=>{
+      if (payload[k] !== "") payload[k] = Number(payload[k]);
+    });
+    if (!payload.lat) delete payload.lat;
+    if (!payload.lon) delete payload.lon;
+
+    const out = document.getElementById('output');
+    const btn = e.submitter || e.target.querySelector('.btn.primary');
+    btn.disabled = true;
+
+    // 🔍 DEBUG LOGGING
+    console.log("=== 🚀 FORM SUBMISSION DEBUG ===");
+    console.log("1. Payload to send:", payload);
+    console.log("2. Target URL:", INGEST_URL);
+    console.log("3. Starting fetch request...");
+
+    showToast("📤 Dispatched to AI…", "ok", 2000);
+    out.textContent = "Sending to AWS Lambda…";
+
+    try {
+      console.log("4. Calling fetch()...");
+      const res = await fetch(INGEST_URL, {
+        method: "POST",
+        mode: "cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+
+      console.log("5. ✅ Fetch completed!");
+      console.log("6. Response status:", res.status);
+      console.log("7. Response ok?", res.ok);
+      console.log("8. Response headers:", [...res.headers.entries()]);
+
+      if (res.ok) {
+        console.log("9. Response is OK, parsing JSON...");
+        const data = await res.json().catch((err)=> {
+          console.error("10. JSON parse error:", err);
+          return {};
+        });
+        console.log("11. ✅ Parsed data:", data);
+        out.textContent = JSON.stringify(data, null, 2) || "✓ OK";
+        showToast("✅ Message delivered to AI", "ok");
+      } else {
+        console.log("9. Response NOT OK, reading error text...");
+        const txt = await res.text().catch(()=> "");
+        console.log("10. Error text:", txt);
+        out.textContent = `⚠️ Server error ${res.status}: ${txt || res.statusText}`;
+        showToast("⚠️ Sent, but server returned an error", "warn");
+      }
+    } catch (err) {
+      console.error("❌ FETCH ERROR CAUGHT:");
+      console.error("Error type:", err.constructor.name);
+      console.error("Error message:", err.message);
+      console.error("Error stack:", err.stack);
+      console.error("Full error object:", err);
+      out.textContent = "⚠️ Request failed: " + err;
+      showToast("📨 Check browser console for debug info", "warn");
+    } finally {
+      console.log("=== 🏁 REQUEST COMPLETE ===");
+      btn.disabled = false;
+    }
+  });
+
+  // Optional: show an initial preview for the default coords
+  window.addEventListener('load', () => {
+    previewWeather();
+  });
+</script>
+</body>
+</html>
